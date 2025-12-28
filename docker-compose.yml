@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  image-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: image-generation-api
+    environment:
+       # Java Options
+      JAVA_OPTS: "-Xms512m -Xmx1024m"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

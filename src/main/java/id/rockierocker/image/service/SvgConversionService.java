@@ -149,13 +149,15 @@ public class SvgConversionService {
                 inputBytes, new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE));
         log.info("Temporary input file created: {}", inputFile.getAbsolutePath());
 
-        double transparencyRatio = TransparencyDetectorUtil.transparencyRatio(inputStream, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
-        if(transparencyRatio < 0.4){
-            InputStream inputStreamBgRemoved = removeBackgroundService.removeBackground(inputFile);
-            if(Objects.nonNull(inputStreamBgRemoved)){
-                inputBytes = CommonUtil.getBytes(inputStream, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
+        double transparencyRatio = TransparencyDetectorUtil.transparencyRatio(inputFile, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
+        log.info("Detected transparency ratio: {}", transparencyRatio);
+        if(transparencyRatio < 0.05){
+            log.info("Removing background from image due to low transparency ratio.");
+            byte[] inputButeBgRemoved = removeBackgroundService.removeBackground(inputFile);
+            if(inputButeBgRemoved.length > 0){
+                inputBytes = inputButeBgRemoved;
                 inputFile = outputDirectoryManagerService.createTempFile("upload-removed-bg-"+originalFilename+"-", "."+ext,
-                        inputBytes, new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE));
+                        inputButeBgRemoved, new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE));
             }
         }
 

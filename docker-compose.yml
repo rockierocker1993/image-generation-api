@@ -10,5 +10,5 @@ services:
        # Java Options
       JAVA_OPTS: "-Xms512m -Xmx1024m"
     ports:
-      - "8080:8080"
+      - "8001:8080"
     restart: unless-stopped

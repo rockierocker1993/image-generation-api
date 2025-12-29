@@ -1,9 +1,13 @@
 package id.rockierocker.image.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.InputStream;
 
+@Slf4j
 public class TransparencyDetectorUtil {
     public static boolean hasTransparency(InputStream imageStream, RuntimeException runtimeException) {
         try {
@@ -42,9 +46,9 @@ public class TransparencyDetectorUtil {
         | `0.05 – 0.4` | icon / cutout            |
         | `< 0.05`     | masih background         |
     */
-    public static double transparencyRatio(InputStream imageStream, RuntimeException runtimeException) {
+    public static double transparencyRatio(File inputFile, RuntimeException runtimeException) {
         try {
-            BufferedImage img = ImageIO.read(imageStream);
+            BufferedImage img = ImageIO.read(inputFile);
             if (!img.getColorModel().hasAlpha()) return 0.0;
 
             long transparent = 0;
@@ -58,6 +62,7 @@ public class TransparencyDetectorUtil {
             }
             return (double) transparent / total;
         } catch (Exception e) {
+            log.error("Error calculating transparency ratio", e);
             throw runtimeException;
         }
     }

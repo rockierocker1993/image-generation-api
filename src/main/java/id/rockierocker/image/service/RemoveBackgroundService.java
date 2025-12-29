@@ -25,7 +25,7 @@ public class RemoveBackgroundService {
     @Value("${remove-bg.url}")
     private String url;
 
-    public InputStream removeBackground(File inputFile) {
+    public byte[] removeBackground(File inputFile) {
         try {
             log.info("Removing background for file: {}", inputFile.getName());
             HttpHeaders headers = new HttpHeaders();
@@ -38,8 +38,8 @@ public class RemoveBackgroundService {
 
             log.info("Sending request to Remove Background API at: {}", url);
             Resource response = restTemplate.postForObject(url, requestEntity, Resource.class);
-
-            return response.getInputStream();
+            log.info("Received response from Remove Background API, file size: {} bytes, filename {}", response.contentLength(), response.getFilename());
+            return response.getContentAsByteArray();
 
         }catch (Exception e){
             log.error("Error while removing background: ", e);

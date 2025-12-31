@@ -213,5 +213,31 @@ public class ImageUtil {
         throw new IllegalArgumentException("Invalid hex color: " + hex);
     }
 
+    public static BufferedImage removeColor(String hexColor, BufferedImage image) {
+        int[] targetRgb = hexToRgb(hexColor);
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int rgb = image.getRGB(x, y);
+
+                int r = (rgb >> 16) & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = rgb & 0xFF;
+
+                if (r == targetRgb[0] && g == targetRgb[1] && b == targetRgb[2]) {
+                    outputImage.setRGB(x, y, 0x00000000); // Set pixel to transparent
+                } else {
+                    outputImage.setRGB(x, y, rgb | 0xFF000000); // Preserve original pixel with full opacity
+                }
+            }
+        }
+
+        return outputImage;
+    }
 
 }

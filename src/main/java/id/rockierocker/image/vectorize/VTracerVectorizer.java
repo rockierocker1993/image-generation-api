@@ -25,7 +25,7 @@ public class VTracerVectorizer extends AbstractVectorizer implements Vectorizer 
     @Override
     public void vectorize(Path input, Path output, List<String> additionalCommand)
             throws Exception {
-
+        preProcess(input);
         ProcessBuilder pb = new ProcessBuilder(
                 vtracerCmd,
                 "--input", input.toAbsolutePath().toString(),

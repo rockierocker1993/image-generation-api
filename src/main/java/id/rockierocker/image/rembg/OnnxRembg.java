@@ -5,6 +5,7 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.NodeInfo;
 import ai.onnxruntime.TensorInfo;
+import id.rockierocker.image.refinment.OpenCVPNPRefinment;
 import id.rockierocker.image.rembg.constant.OnnxInputSize;
 import id.rockierocker.image.util.CommonUtil;
 import id.rockierocker.image.util.ImageUtil;
@@ -24,6 +25,7 @@ import java.util.Objects;
 public class OnnxRembg implements Rembg {
 
     private Map<String, Object> config;
+    OpenCVPNPRefinment openCVPNPRefinment = new OpenCVPNPRefinment();
 
     @Override
     public String getName() {
@@ -89,7 +91,7 @@ public class OnnxRembg implements Rembg {
             log.info("resizing mask to original image size...");
             float[][] resizeMaskToOriginalSize = resizeMask(mask, input.getWidth(), input.getHeight());
             log.info("applying mask to original image...");
-            BufferedImage applyMask = applyMask(input, resizeMaskToOriginalSize);
+            BufferedImage applyMask = openCVPNPRefinment.refineAndApply(input, resizeMaskToOriginalSize);//applyMask(input, resizeMaskToOriginalSize);
             byte[] result = ImageUtil.toBytes(applyMask);
             log.info("successfully removed background from image");
             return result;
@@ -218,12 +220,12 @@ public class OnnxRembg implements Rembg {
                         "onnxModelPath", "./data/onnx-model/BiRefNet-massive-TR_DIS5K_TR_TEs-epoch_420.onnx",
                         "onnxInputSize", OnnxInputSize.INPUT_SIZE_320
                 ));
-                File testFile = new File("./data-test/rembg/test1.png");
+                File testFile = new File("./data-test/rembg/test6.png");
 
                 InputStream inputImage = CommonUtil.toInputStream(testFile, new RuntimeException());
                 byte[] outputImage = onnxRembg.removeBackground(inputImage);
 
-                File outputFile = new File(testFile.getParentFile().getAbsolutePath() + "/" + testFile.getName() + "onnx.png");
+                File outputFile = new File(testFile.getParentFile().getAbsolutePath() + "/" + testFile.getName() + "onnx-1.png");
                 Files.write(outputFile.toPath(), outputImage);
 
     }

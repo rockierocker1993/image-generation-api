@@ -34,16 +34,6 @@ public class VTracerVectorizer extends AbstractVectorizer implements Vectorizer 
         if(additionalCommand!=null && !additionalCommand.isEmpty()){
             pb.command().addAll(additionalCommand);
         }
-//        ProcessBuilder pb = new ProcessBuilder(
-//                vtracerCmd,
-//                "--input", input.toAbsolutePath().toString(),
-//                "--output", output.toAbsolutePath().toString(),
-//                "--colormode", "color",
-//                "--hierarchical", "stacked",
-//                "--mode", "spline",
-//                "--filter_speckle", String.valueOf(opt.getTurdSize()),
-//                "--color_precision", String.valueOf(opt.getColorCount())
-//        );
         exec(pb, "vtracer");
     }
 }

@@ -10,6 +10,10 @@ import id.rockierocker.image.repository.IconRepository;
 import id.rockierocker.image.util.CommonUtil;
 import id.rockierocker.image.util.TransparencyDetectorUtil;
 import id.rockierocker.image.vectorize.Vectorizer;
+import id.rockierocker.image.vectorize.constant.VTracerColorMode;
+import id.rockierocker.image.vectorize.constant.VTracerCurveFittingMode;
+import id.rockierocker.image.vectorize.constant.VTracerHierarchical;
+import id.rockierocker.image.vectorize.constant.VectorizeType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -169,28 +173,28 @@ public class SvgConversionService {
     }
 
     private Map<String,Object> buildAdditionalCommandMap(VtraceConversionDto vtraceCurveFittingConversionDto) {
-        ColorMode colorMode = vtraceCurveFittingConversionDto.getColorMode();
+        VTracerColorMode colorMode = vtraceCurveFittingConversionDto.getColorMode();
         if (colorMode == null)
-            colorMode = ColorMode.COLOR;
+            colorMode = VTracerColorMode.COLOR;
 
-        Hierarchical hierarchical = vtraceCurveFittingConversionDto.getHierarchical();
+        VTracerHierarchical hierarchical = vtraceCurveFittingConversionDto.getHierarchical();
         if (hierarchical == null)
-            hierarchical = Hierarchical.STACKED;
+            hierarchical = VTracerHierarchical.STACKED;
 
-        CurveFittingMode curveFittingMode = vtraceCurveFittingConversionDto.getCurveFittingMode();
+        VTracerCurveFittingMode curveFittingMode = vtraceCurveFittingConversionDto.getCurveFittingMode();
         if (curveFittingMode == null)
-            curveFittingMode = CurveFittingMode.SPLINE;
+            curveFittingMode = VTracerCurveFittingMode.SPLINE;
 
         Map<String, Object> additionalCommandMap = new HashMap<>();
         additionalCommandMap.put("--colormode", colorMode.getCommand());
-        if(colorMode == ColorMode.COLOR)
+        if(colorMode == VTracerColorMode.COLOR)
             additionalCommandMap.put("--hierarchical", hierarchical.getCommand());
 
         additionalCommandMap.put("--filter_speckle", vtraceCurveFittingConversionDto.getFilterSpeckle());
         additionalCommandMap.put("--color_precision", vtraceCurveFittingConversionDto.getColorPrecision());
         additionalCommandMap.put("--gradient_step", vtraceCurveFittingConversionDto.getGradientStep());
         additionalCommandMap.put("--mode",curveFittingMode.getCommand());
-        if(curveFittingMode == CurveFittingMode.SPLINE) {
+        if(curveFittingMode == VTracerCurveFittingMode.SPLINE) {
             additionalCommandMap.put("--segment_length", vtraceCurveFittingConversionDto.getSegmentLength());
             additionalCommandMap.put("--splice_threshold", vtraceCurveFittingConversionDto.getSpliceThreshold());
             additionalCommandMap.put("--corner_threshold", vtraceCurveFittingConversionDto.getCornerThreshold());

@@ -1,13 +1,13 @@
-package id.rockierocker.image.constant;
+package id.rockierocker.image.vectorize.constant;
 
 import lombok.Getter;
 
 @Getter
-public enum CurveFittingMode {
+public enum VTracerCurveFittingMode {
     PIXEL("PIXEL","pixel"),
     POLYGON("POLYGON","polygon"),
     SPLINE("SPLINE","spline"),;
-    private CurveFittingMode(String mode, String command) {
+    private VTracerCurveFittingMode(String mode, String command) {
         this.mode = mode;
         this.command = command;
     }

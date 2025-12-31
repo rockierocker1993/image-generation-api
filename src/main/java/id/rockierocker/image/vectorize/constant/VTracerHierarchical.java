@@ -1,4 +1,4 @@
-package id.rockierocker.image.constant;
+package id.rockierocker.image.vectorize.constant;
 
 import lombok.Getter;
 /**
@@ -6,10 +6,10 @@ import lombok.Getter;
  * Only applies to color mode, ColorMode.COLOR
  */
 @Getter
-public enum Hierarchical {
+public enum VTracerHierarchical {
     STACKED("STACKED", "stacked"),
     CUTOUT("CUTOUT","cutout");
-    private Hierarchical(String mode, String command) {
+    private VTracerHierarchical(String mode, String command) {
         this.mode = mode;
         this.command = command;
     }

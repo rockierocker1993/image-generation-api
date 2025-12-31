@@ -1,12 +1,12 @@
-package id.rockierocker.image.constant;
+package id.rockierocker.image.vectorize.constant;
 
 import lombok.Getter;
 
 @Getter
-public enum ColorMode {
+public enum VTracerColorMode {
     BW("BW", "bw"),
     COLOR("COLOR","color");
-    private ColorMode(String mode, String command) {
+    private VTracerColorMode(String mode, String command) {
         this.mode = mode;
         this.command = command;
     }

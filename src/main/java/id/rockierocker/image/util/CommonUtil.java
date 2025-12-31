@@ -2,6 +2,7 @@ package id.rockierocker.image.util;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -28,6 +29,20 @@ public class CommonUtil {
     public static InputStream getInputStream(MultipartFile multipartFile, RuntimeException runtimeException){
         try {
             return multipartFile.getInputStream();
+        } catch (IOException e) {
+            throw runtimeException;
+        }
+    }
+
+    /**
+     * Get InputStream from File, throwing the provided RuntimeException on failure
+     * @param file the File
+     * @param runtimeException the RuntimeException to throw on failure
+     * @return the InputStream
+     */
+    public static InputStream toInputStream(File file, RuntimeException runtimeException){
+        try {
+            return java.nio.file.Files.newInputStream(file.toPath());
         } catch (IOException e) {
             throw runtimeException;
         }

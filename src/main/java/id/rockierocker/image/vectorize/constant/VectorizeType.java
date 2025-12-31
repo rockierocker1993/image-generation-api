@@ -1,4 +1,4 @@
-package id.rockierocker.image.constant;
+package id.rockierocker.image.vectorize.constant;
 
 public enum VectorizeType {
     VTRACE,

@@ -14,7 +14,6 @@ public class OpenCVPNPRefinment {
         // Load OpenCV native binaries (org.openpnp:opencv)
         OpenCV.loadLocally();
     }
-dsadas zz 
     // =========================
     // Public API
     // =========================

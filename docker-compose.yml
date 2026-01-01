@@ -14,4 +14,4 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/app/data:ro
-      - ./output-dir:/app/output-dir:ro
+      - ./output-dir:/app/output-dir

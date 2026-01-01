@@ -53,7 +53,7 @@ COPY ./tools/vtracer /usr/local/bin/vtracer
 RUN chmod +x /usr/local/bin/vtracer
 
 # App directories
-RUN mkdir -p /app/output /app/temp \
+RUN mkdir -p /app/output /app/temp /app/output-dir \
     && chown -R appuser:appuser /app /home/appuser
 
 USER appuser

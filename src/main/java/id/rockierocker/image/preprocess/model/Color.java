@@ -1,4 +1,4 @@
-package id.rockierocker.image.vectorize.model;
+package id.rockierocker.image.preprocess.model;
 
 public class Color {
     public float r, g, b;

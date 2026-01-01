@@ -2,6 +2,7 @@ package id.rockierocker.image.vectorize;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 public interface Vectorizer {
     void vectorize(

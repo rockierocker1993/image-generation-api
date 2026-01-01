@@ -17,12 +17,23 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
 import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 public class OnnxRembg implements Rembg {
+
+    // =========================
+    // CONFIG
+    // =========================
+    static final int K_COLORS = 5;        // recommended 4–6
+    static final float CONTRAST = 1.2f;   // 1.1 – 1.3
+    static final int ITERATIONS = 10;
+
+    static final float[][] SHARPEN_KERNEL = {
+            { 0, -1,  0 },
+            { -1,  5, -1 },
+            { 0, -1,  0 }
+    };
 
     private Map<String, Object> config;
     OpenCVPNPRefinment openCVPNPRefinment = new OpenCVPNPRefinment();
@@ -81,17 +92,17 @@ public class OnnxRembg implements Rembg {
             }
 
             log.info("reading input image...");
-            BufferedImage input = ImageIO.read(inputImage);
+            BufferedImage original = ImageIO.read(inputImage);
             log.info("resizing input image to {}x{}...", targetW + "", targetH + "");
-            BufferedImage resized = ImageUtil.resize(input, targetW, targetH);
+            BufferedImage resized = ImageUtil.resize(original, targetW, targetH);
             log.info("converting image to tensor...");
             float[] tensorData = imageToTensor(resized, targetW, targetH);
             log.info("running inference to get mask model...");
             float[][] mask = runInference(env, session, tensorData, targetW, targetH);
             log.info("resizing mask to original image size...");
-            float[][] resizeMaskToOriginalSize = resizeMask(mask, input.getWidth(), input.getHeight());
+            float[][] resizeMaskToOriginalSize = resizeMask(mask, original.getWidth(), original.getHeight());
             log.info("applying mask to original image...");
-            BufferedImage applyMask = openCVPNPRefinment.refineAndApply(input, resizeMaskToOriginalSize);//applyMask(input, resizeMaskToOriginalSize);
+            BufferedImage applyMask = openCVPNPRefinment.refineAndApply(original, resizeMaskToOriginalSize);//applyMask(input, resizeMaskToOriginalSize);
             byte[] result = ImageUtil.toBytes(applyMask);
             log.info("successfully removed background from image");
             return result;
@@ -217,10 +228,11 @@ public class OnnxRembg implements Rembg {
     public static void main(String[] args) throws Exception {
                 OnnxRembg onnxRembg = new OnnxRembg();
                 onnxRembg.configMap(Map.of(
-                        "onnxModelPath", "./data/onnx-model/BiRefNet-massive-TR_DIS5K_TR_TEs-epoch_420.onnx",
+                        //"onnxModelPath", "./data/onnx-model/BiRefNet-massive-TR_DIS5K_TR_TEs-epoch_420.onnx",
+                        "onnxModelPath", "./data/onnx-model/isnet-general-use.onnx",
                         "onnxInputSize", OnnxInputSize.INPUT_SIZE_320
                 ));
-                File testFile = new File("./data-test/rembg/test6.png");
+                File testFile = new File("./data-test/rembg/test3.jpg");
 
                 InputStream inputImage = CommonUtil.toInputStream(testFile, new RuntimeException());
                 byte[] outputImage = onnxRembg.removeBackground(inputImage);
@@ -229,6 +241,5 @@ public class OnnxRembg implements Rembg {
                 Files.write(outputFile.toPath(), outputImage);
 
     }
-
 
 }

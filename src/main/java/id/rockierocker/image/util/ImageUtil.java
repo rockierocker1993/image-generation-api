@@ -4,8 +4,11 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ImageUtil {
@@ -239,5 +242,103 @@ public class ImageUtil {
 
         return outputImage;
     }
+
+    public static boolean hasTransparency(BufferedImage img) {
+        if (!img.getColorModel().hasAlpha()) return false;
+
+        int w = img.getWidth();
+        int h = img.getHeight();
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int a = (img.getRGB(x, y) >> 24) & 0xff;
+                if (a < 250) return true;
+            }
+        }
+        return false;
+    }
+
+    public static double edgeSharpnessScore(BufferedImage img) {
+        int w = img.getWidth();
+        int h = img.getHeight();
+        double total = 0;
+        int count = 0;
+
+        for (int y = 1; y < h - 1; y++) {
+            for (int x = 1; x < w - 1; x++) {
+                int c = img.getRGB(x, y) & 0xff;
+                int r = img.getRGB(x + 1, y) & 0xff;
+                int b = img.getRGB(x, y + 1) & 0xff;
+
+                total += Math.abs(c - r) + Math.abs(c - b);
+                count++;
+            }
+        }
+        return total / count;
+    }
+
+    public static double borderColorVariance(BufferedImage img) {
+        int w = img.getWidth();
+        int h = img.getHeight();
+
+        List<Integer> colors = new ArrayList<>();
+
+        for (int x = 0; x < w; x++) {
+            colors.add(img.getRGB(x, 0));
+            colors.add(img.getRGB(x, h - 1));
+        }
+        for (int y = 0; y < h; y++) {
+            colors.add(img.getRGB(0, y));
+            colors.add(img.getRGB(w - 1, y));
+        }
+
+        double avg = colors.stream().mapToInt(c -> c & 0xff).average().orElse(0);
+        double var = 0;
+
+        for (int c : colors) {
+            double v = (c & 0xff) - avg;
+            var += v * v;
+        }
+        return var / colors.size();
+    }
+
+    public static String detectBackgroundStatus(BufferedImage img) {
+        boolean transparent = hasTransparency(img);
+        double edge = edgeSharpnessScore(img);
+        double borderVar = borderColorVariance(img);
+
+        if (transparent && edge > 10) {
+            return "BACKGROUND_REMOVED";
+        }
+
+        if (!transparent && borderVar < 10 && edge > 10) {
+            return "SOLID_BACKGROUND_NOT_REMOVED";
+        }
+
+        if (edge < 5) {
+            return "BLUR_BACKGROUND";
+        }
+
+        return "DIRTY_OR_PARTIAL_BACKGROUND";
+    }
+
+    public static BufferedImage toBufferedImage(File file, RuntimeException runtimeException) {
+        try {
+            return ImageIO.read(file);
+        } catch (Exception e) {
+            throw runtimeException;
+        }
+    }
+
+    public static File toTempFile(BufferedImage bufferedImage, String format, RuntimeException runtimeException) {
+        try {
+            File tempFile = File.createTempFile(String.valueOf(System.currentTimeMillis()), null);
+            ImageIO.write(bufferedImage, format, tempFile);
+            return tempFile;
+        } catch (IOException e) {
+            throw runtimeException;
+        }
+    }
+
 
 }

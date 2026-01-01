@@ -15,4 +15,13 @@ public enum VTracerHierarchical {
     }
     private final String mode;
     private final String command;
+
+    public static VTracerHierarchical fromString(String mode) {
+        for (VTracerHierarchical hierarchical : VTracerHierarchical.values()) {
+            if (hierarchical.getMode().equalsIgnoreCase(mode)) {
+                return hierarchical;
+            }
+        }
+        return null;
+    }
 }

@@ -13,4 +13,13 @@ public enum VTracerCurveFittingMode {
     }
     private final String mode;
     private final String command;
+
+    public static VTracerCurveFittingMode fromString(String mode) {
+        for (VTracerCurveFittingMode fittingMode : VTracerCurveFittingMode.values()) {
+            if (fittingMode.getMode().equalsIgnoreCase(mode)) {
+                return fittingMode;
+            }
+        }
+        return null;
+    }
 }

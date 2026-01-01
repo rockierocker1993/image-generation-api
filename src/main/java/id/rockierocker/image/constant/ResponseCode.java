@@ -50,6 +50,27 @@ public enum ResponseCode {
             "Error",
             "Error"
     ),
+    VTRACE_CONFIG_NOT_FOUND(
+            "RC007",
+            "VTrace Config not found.",
+            "VTrace Config not found.",
+            "Error",
+            "Error"
+    ),
+    PREPROCESS_FAIELD(
+            "RC008",
+            "Preprocess Failed.",
+            "Preprocess Failed.",
+            "Error",
+            "Error"
+    ),
+    PREPROCESS_FAIELD_TO_BUFFERED_IMAGE(
+            "RC009",
+            "Preprocess Failed to Buffered Image.",
+            "Preprocess Failed to Buffered Image.",
+            "Error",
+            "Error"
+    ),
     ;
 
     private ResponseCode(String code,  String defaultMessageId, String defaultMessageEn, String defaultTitleId, String defaultTitleEn) {

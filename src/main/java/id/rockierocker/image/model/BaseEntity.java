@@ -21,6 +21,9 @@ public abstract class BaseEntity {
     @Column(name = "updated")
     private LocalDateTime updated;
 
+    @Column(name = "deleted")
+    private LocalDateTime deleted;
+
     @Column(name = "created_by", length = 255)
     private String createdBy;
 

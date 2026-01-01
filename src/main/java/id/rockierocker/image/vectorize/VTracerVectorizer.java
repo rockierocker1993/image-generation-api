@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 /**
  * VTracer vectorizer implementation.
@@ -22,10 +23,10 @@ public class VTracerVectorizer extends AbstractVectorizer implements Vectorizer 
         return "VTracer";
     }
 
+
     @Override
     public void vectorize(Path input, Path output, List<String> additionalCommand)
             throws Exception {
-        preProcess(input);
         ProcessBuilder pb = new ProcessBuilder(
                 vtracerCmd,
                 "--input", input.toAbsolutePath().toString(),

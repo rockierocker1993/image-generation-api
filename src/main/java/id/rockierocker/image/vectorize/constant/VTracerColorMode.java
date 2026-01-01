@@ -12,4 +12,13 @@ public enum VTracerColorMode {
     }
     private final String mode;
     private final String command;
+
+    public static VTracerColorMode fromString(String mode) {
+        for (VTracerColorMode colorMode : VTracerColorMode.values()) {
+            if (colorMode.getMode().equalsIgnoreCase(mode)) {
+                return colorMode;
+            }
+        }
+        return null;
+    }
 }

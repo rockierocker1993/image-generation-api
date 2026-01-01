@@ -12,6 +12,12 @@ services:
     ports:
       - "8001:8080"
     restart: unless-stopped
+    # Run as root briefly to ensure we can chown the mounted output dir when running on Linux hosts
+    user: root
+    # Attempt to change ownership of the mounted output dir to appuser and then run the JVM as appuser.
+    # If chown or su fails (e.g. on windows mounts), fall back to running the JVM as root so writes still work.
+    command: >
+      sh -c "chown -R appuser:appuser /app/output-dir 2>/dev/null && su -s /bin/sh -c 'java -jar app.jar' appuser || java -jar app.jar"
     volumes:
       - ./data:/app/data:ro
       - ./output-dir:/app/output-dir

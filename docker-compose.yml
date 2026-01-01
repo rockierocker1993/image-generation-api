@@ -6,18 +6,22 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: image-generation-api
+    # Run the container processes using the host UID/GID so files created in the bind-mounted
+    # ./output-dir are owned by the host user and accessible via SFTP/FileZilla.
     environment:
-       # Java Options
+      # Java Options
       JAVA_OPTS: "-Xms512m -Xmx1024m"
+      # These can be set in a .env file (see README) or exported before running compose
+      LOCAL_UID: "${LOCAL_UID:-1000}"
+      LOCAL_GID: "${LOCAL_GID:-1000}"
     ports:
       - "8001:8080"
     restart: unless-stopped
-    # Run as root briefly to ensure we can chown the mounted output dir when running on Linux hosts
-    user: root
-    # Attempt to change ownership of the mounted output dir to appuser and then run the JVM as appuser.
-    # If chown or su fails (e.g. on windows mounts), fall back to running the JVM as root so writes still work.
-    command: >
-      sh -c "chown -R appuser:appuser /app/output-dir 2>/dev/null && su -s /bin/sh -c 'java -jar app.jar' appuser || java -jar app.jar"
+    # Run container processes using the host user's UID:GID so created files are readable
+    # by that same host user (useful for SFTP/FileZilla). Set LOCAL_UID/LOCAL_GID in a .env file
+    # or export them in the shell before running `docker compose`.
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    command: ["java", "-jar", "app.jar"]
     volumes:
       - ./data:/app/data:ro
       - ./output-dir:/app/output-dir

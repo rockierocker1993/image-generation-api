@@ -7,7 +7,8 @@ import id.rockierocker.image.exception.BadRequestException;
 import id.rockierocker.image.exception.InternalServerErrorException;
 import id.rockierocker.image.model.Icon;
 import id.rockierocker.image.model.VtraceConfig;
-import id.rockierocker.image.preprocess.PreprocessStep;
+import id.rockierocker.image.preprocess.Preprocess;
+import id.rockierocker.image.preprocess.PreprocessEnum;
 import id.rockierocker.image.preprocess.model.PreprocessConfig;
 import id.rockierocker.image.rembg.Rembg;
 import id.rockierocker.image.repository.IconRepository;
@@ -77,13 +78,31 @@ public class SvgConversionService {
         String ext = init.ext();
         byte[] inputBytes = init.inputBytes();
         File inputFile = init.inputFile();
-
         // Save a copy of the original upload to processedImages (do it once)
         try {
             Path originalPath = writeTempFile("original-" + originalFilename + "-", "." + ext, inputBytes);
             addProcessedFile(processedImages, originalPath);
         } catch (Exception e) {
             log.warn("Failed to copy original input file to processed images", e);
+        }
+
+        if(!"png".equalsIgnoreCase(ext)) {
+            // do convert to png first
+            log.info("Converting input image to PNG format before VTrace vectorization.");
+            try {
+                BufferedImage bufferedImage = ImageUtil.toBufferedImage(inputFile, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
+                byte[] pngBytes = ImageUtil.toBytesPng(bufferedImage);
+                ext = "png";
+                Path pngPath = writeTempFile("converted-png-" + originalFilename + "-", "."+ext, pngBytes);
+                addProcessedFile(processedImages, pngPath);
+                // Update inputFile and ext for further processing
+                inputFile = pngPath.toFile();
+
+                log.info("Input image converted to PNG successfully.");
+            } catch (Exception e) {
+                log.warn("Failed to convert input image to PNG", e);
+            }
+
         }
 
         // Remove background only when image has no transparency
@@ -272,7 +291,8 @@ public class SvgConversionService {
                 PreprocessConfig config = objectMapper.convertValue(preprocessConfig, PreprocessConfig.class);
                 BufferedImage bufferedImage = ImageUtil.toBufferedImage(inputFile, new InternalServerErrorException(ResponseCode.PREPROCESS_FAIELD_TO_BUFFERED_IMAGE));
                 for (String step : preprocessSteps) {
-                    BufferedImage newBufferedImage = PreprocessStep.process(step, bufferedImage, config, new InternalServerErrorException(ResponseCode.PREPROCESS_FAIELD));
+                    PreprocessEnum preprocessEnum = PreprocessEnum.fromString(step);
+                    BufferedImage newBufferedImage = Preprocess.process(preprocessEnum, bufferedImage, config, new InternalServerErrorException(ResponseCode.PREPROCESS_FAIELD));
                     if (newBufferedImage == null) {
                         log.warn("Preprocess step '{}' returned null, stopping further preprocessing.", step);
                         break;

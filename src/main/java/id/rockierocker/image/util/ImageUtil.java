@@ -47,6 +47,19 @@ public class ImageUtil {
     }
 
     /**
+     * Convert a BufferedImage to a byte array.
+     *
+     * @param bufferedImage The BufferedImage to be converted.
+     * @return A byte array representing the image data.
+     * @throws IOException If an error occurs during writing.
+     */
+    public static byte[] toBytesPng(BufferedImage bufferedImage) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(bufferedImage, "png", baos);
+        return baos.toByteArray();
+    }
+
+    /**
      * Get the hexadecimal RGBA color of a pixel at (x, y) in the image.
      *
      * @param image The BufferedImage to sample.
@@ -335,6 +348,17 @@ public class ImageUtil {
             File tempFile = File.createTempFile(String.valueOf(System.currentTimeMillis()), null);
             ImageIO.write(bufferedImage, format, tempFile);
             return tempFile;
+        } catch (IOException e) {
+            throw runtimeException;
+        }
+    }
+
+    public static File converToFng(File jpgFile, RuntimeException runtimeException) {
+        try {
+            BufferedImage img = ImageIO.read(jpgFile);
+            File pngFile = File.createTempFile(String.valueOf(System.currentTimeMillis()), null);
+            ImageIO.write(img, "png", pngFile);
+            return pngFile;
         } catch (IOException e) {
             throw runtimeException;
         }

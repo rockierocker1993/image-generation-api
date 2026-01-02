@@ -1,9 +1,7 @@
 package id.rockierocker.image.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import id.rockierocker.image.constant.*;
-import id.rockierocker.image.conversion.PbmConversion;
 import id.rockierocker.image.dto.svgconversion.VtraceConversionDto;
 import id.rockierocker.image.exception.BadRequestException;
 import id.rockierocker.image.exception.InternalServerErrorException;
@@ -12,13 +10,11 @@ import id.rockierocker.image.model.VtraceConfig;
 import id.rockierocker.image.preprocess.PreprocessStep;
 import id.rockierocker.image.preprocess.model.PreprocessConfig;
 import id.rockierocker.image.rembg.Rembg;
-import id.rockierocker.image.rembg.constant.OnnxInputSize;
 import id.rockierocker.image.repository.IconRepository;
 import id.rockierocker.image.repository.PreprocessConfigRepository;
 import id.rockierocker.image.repository.VtraceConfigRepository;
 import id.rockierocker.image.util.CommonUtil;
 import id.rockierocker.image.util.ImageUtil;
-import id.rockierocker.image.util.TransparencyDetectorUtil;
 import id.rockierocker.image.vectorize.Vectorizer;
 import id.rockierocker.image.vectorize.constant.VTracerColorMode;
 import id.rockierocker.image.vectorize.constant.VTracerCurveFittingMode;
@@ -36,12 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -51,10 +45,9 @@ import java.util.*;
 @Service
 public class SvgConversionService {
 
-    private final PbmConversion pbmConversion;
     private final OutputDirectoryManagerService outputDirectoryManagerService;
     @Value("${image.allowed.extensions:png,jpg,jpeg}")
-    private List<String> allowedExtensions;
+    private List<String> allowedExtensions = List.of("png", "jpg", "jpeg");
 
     private final Vectorizer vectorizerVtrace;
     private final Vectorizer vectorizerInkscape;
@@ -65,6 +58,9 @@ public class SvgConversionService {
     private final ObjectMapper objectMapper;
     private final Rembg rembg;
 
+    // Small immutable holder for input initialization results (replaces passing loose Map)
+    private static record InputInfo(String originalFilename, String ext, byte[] inputBytes, File inputFile) {}
+
     /* VTRACE SVG CONVERSION
      *  see the doc for more info: https://github.com/visioncortex/vtracer?tab=readme-ov-file
      * */
@@ -72,49 +68,34 @@ public class SvgConversionService {
     public ResponseEntity<byte[]> convertToSvgVTrace(MultipartFile file, VtraceConversionDto vtraceConversionDto) {
         log.info("Starting SVG conversion using {}", vectorizerVtrace.getName());
         List<File> processedImages = new ArrayList<>();
-        Map<String, Object> additionalCommandMap = buildAdditionalCommandMap(vtraceConversionDto.getVtraceConfigCode());
 
-        List<String> additionalCommand = new ArrayList<>();
-        additionalCommandMap.forEach((k, v) -> {
-            if (Objects.nonNull(v)) {
-                additionalCommand.add(k);
-                additionalCommand.add(String.valueOf(v).trim());
-            }
-        });
-        Map<String, Object> mapInitializeInput = mapInitializeInput(file);
-        String originalFilename = (String) mapInitializeInput.get("originalFilename");
-        String ext = (String) mapInitializeInput.get("ext");
-        byte[] inputBytes = (byte[]) mapInitializeInput.get("inputBytes");
-        File inputFile = (File) mapInitializeInput.get("inputFile");
+        // Build command arguments in a clear, single step
+        List<String> additionalCommand = buildAdditionalCommandList(vtraceConversionDto.getVtraceConfigCode());
 
+        InputInfo init = createInputInfo(file);
+        String originalFilename = init.originalFilename();
+        String ext = init.ext();
+        byte[] inputBytes = init.inputBytes();
+        File inputFile = init.inputFile();
+
+        // Save a copy of the original upload to processedImages (do it once)
         try {
-            Path originalPath = outputDirectoryManagerService.createTempFile("original-" + originalFilename + "-", "." + ext,
-                    new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE)).toPath();
-            Files.write(originalPath, inputBytes);
-            processedImages.add(Files.write(originalPath, inputBytes).toFile());
+            Path originalPath = writeTempFile("original-" + originalFilename + "-", "." + ext, inputBytes);
+            addProcessedFile(processedImages, originalPath);
         } catch (Exception e) {
             log.warn("Failed to copy original input file to processed images", e);
         }
 
-        if (!ImageUtil.hasTransparency(ImageUtil.toBufferedImage(inputFile, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE)))) {
-            log.info("image has no transparency.");
-            log.info("Removing background from image before VTrace vectorization.");
-            try {
-                byte[] inputByteBgRemoved = rembg.removeBackground(CommonUtil.toInputStream(inputFile, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE)));
-                Path rembgPath = outputDirectoryManagerService.createTempFile("rembg-" + originalFilename + "-", "." + ext,
-                        new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE)).toPath();
-                Files.write(rembgPath, inputByteBgRemoved);
-                processedImages.add(rembgPath.toFile());
-                Files.write(inputFile.toPath(), inputByteBgRemoved);
-                log.info("Background removed successfully.");
-            } catch (Exception e) {
-                log.warn("Failed to remove background", e);
-            }
-        }
+        // Remove background only when image has no transparency
+        removeBackgroundIfNeeded(inputFile, originalFilename, ext, processedImages);
+
+        // Preprocess image if requested
         inputFile = preprocess(vtraceConversionDto.getPreprocessStepCode(), inputFile, originalFilename, ext, processedImages);
 
+        // Vectorize
         byte[] svgBytes = doVectorization(vectorizerVtrace, inputFile, originalFilename, additionalCommand);
 
+        // Persist original image record
         Icon originalImage = iconRepository.save(
                 Icon.builder()
                         .name(originalFilename)
@@ -126,6 +107,7 @@ public class SvgConversionService {
                         .build()
         );
 
+        // Persist generated SVG record
         Icon icon = iconRepository.save(
                 Icon.builder()
                         .originalImage(originalImage)
@@ -138,11 +120,11 @@ public class SvgConversionService {
                         .build()
         );
 
+        // Save processed images to output directory asynchronously
         saveImageFile(processedImages, icon.getId());
 
         return buildResponseEntity(svgBytes);
     }
-
 
     /* INKSCAPE SVG CONVERSION
      *  see the doc for more info: https://wiki.inkscape.org/wiki/Using_the_Command_Line
@@ -151,11 +133,11 @@ public class SvgConversionService {
     public ResponseEntity<byte[]> convertToSvgInkscape(MultipartFile file) {
         log.info("Starting SVG conversion using {}", vectorizerInkscape.getName());
 
-        Map<String, Object> mapInitializeInput = mapInitializeInput(file);
-        String originalFilename = (String) mapInitializeInput.get("originalFilename");
-        String ext = (String) mapInitializeInput.get("ext");
-        byte[] inputBytes = (byte[]) mapInitializeInput.get("inputBytes");
-        File inputFile = (File) mapInitializeInput.get("inputFile");
+        InputInfo init = createInputInfo(file);
+        String originalFilename = init.originalFilename();
+        String ext = init.ext();
+        byte[] inputBytes = init.inputBytes();
+        File inputFile = init.inputFile();
 
         byte[] svgBytes = doVectorization(vectorizerInkscape, inputFile, originalFilename, new ArrayList<>());
 
@@ -184,26 +166,59 @@ public class SvgConversionService {
         return buildResponseEntity(svgBytes);
     }
 
-    private Map<String, Object> mapInitializeInput(MultipartFile file) {
+    // Create InputInfo from uploaded MultipartFile (was mapInitializeInput)
+    private InputInfo createInputInfo(MultipartFile file) {
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename() == null ? "" : file.getOriginalFilename());
-        Map<String, Object> mapInitializeInput = new HashMap<>();
         String ext = CommonUtil.getExtensionLower(originalFilename);
         if (!ext.isEmpty() && !allowedExtensions.contains(ext)) {
             log.info("Unsupported file extension for SVG conversion: {}", ext);
             throw new BadRequestException(ResponseCode.EXTENSION_NOT_SUPPORTED);
         }
-        InputStream inputStream = CommonUtil.getInputStream(file, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
 
+        InputStream inputStream = CommonUtil.getInputStream(file, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
         log.info("Creating temporary input file for SVG conversion.");
         byte[] inputBytes = CommonUtil.getBytes(inputStream, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
         File inputFile = outputDirectoryManagerService.createTempFile("upload-" + originalFilename + "-", "." + ext,
                 inputBytes, new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE));
         log.info("Temporary input file created: {}", inputFile.getAbsolutePath());
-        mapInitializeInput.put("originalFilename", originalFilename);
-        mapInitializeInput.put("ext", ext);
-        mapInitializeInput.put("inputBytes", inputBytes);
-        mapInitializeInput.put("inputFile", inputFile);
-        return mapInitializeInput;
+        return new InputInfo(originalFilename, ext, inputBytes, inputFile);
+    }
+
+    // Extracted helper for background removal to keep main flow linear and readable
+    private void removeBackgroundIfNeeded(File inputFile, String originalFilename, String ext, List<File> processedImages) {
+        try {
+            BufferedImage buffered = ImageUtil.toBufferedImage(inputFile, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
+            if (ImageUtil.hasTransparency(buffered)) {
+                log.info("image has transparency; skipping background removal.");
+                return;
+            }
+
+            log.info("image has no transparency. Removing background from image before VTrace vectorization.");
+            try {
+                byte[] inputByteBgRemoved = rembg.removeBackground(CommonUtil.toInputStream(inputFile, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE)));
+                Path rembgPath = writeTempFile("rembg-" + originalFilename + "-", "." + ext, inputByteBgRemoved);
+                addProcessedFile(processedImages, rembgPath);
+                Files.write(inputFile.toPath(), inputByteBgRemoved);
+                log.info("Background removed successfully.");
+            } catch (Exception e) {
+                log.warn("Failed to remove background", e);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to read input file while checking transparency", e);
+        }
+    }
+
+    // Helper: convert additional command map to flat list of args
+    private List<String> buildAdditionalCommandList(String vtraceConfigCode) {
+        Map<String, Object> additionalCommandMap = buildAdditionalCommandMap(vtraceConfigCode);
+        List<String> additionalCommand = new ArrayList<>();
+        additionalCommandMap.forEach((k, v) -> {
+            if (Objects.nonNull(v)) {
+                additionalCommand.add(k);
+                additionalCommand.add(String.valueOf(v).trim());
+            }
+        });
+        return additionalCommand;
     }
 
     private Map<String, Object> buildAdditionalCommandMap(String vtraceConfigCode) {
@@ -240,6 +255,14 @@ public class SvgConversionService {
         return additionalCommandMap;
     }
 
+    // Helper: create temp file and write bytes, returning the Path
+    private Path writeTempFile(String prefix, String suffix, byte[] data) throws IOException {
+        Path path = outputDirectoryManagerService.createTempFile(prefix, suffix,
+                new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE)).toPath();
+        Files.write(path, data);
+        return path;
+    }
+
     private File preprocess(String preprocessConfigCode, File inputFile, String originalFilename, String ext, List<File> processedImages) {
         var preprocessConfig = preprocessConfigRepository.findFirstByConfigCode(preprocessConfigCode).orElse(null);
         if (Objects.nonNull(preprocessConfig)) {
@@ -250,19 +273,27 @@ public class SvgConversionService {
                 BufferedImage bufferedImage = ImageUtil.toBufferedImage(inputFile, new InternalServerErrorException(ResponseCode.PREPROCESS_FAIELD_TO_BUFFERED_IMAGE));
                 for (String step : preprocessSteps) {
                     BufferedImage newBufferedImage = PreprocessStep.process(step, bufferedImage, config, new InternalServerErrorException(ResponseCode.PREPROCESS_FAIELD));
+                    if (newBufferedImage == null) {
+                        log.warn("Preprocess step '{}' returned null, stopping further preprocessing.", step);
+                        break;
+                    }
                     byte[] imageBytes = ImageUtil.toBytes(newBufferedImage);
                     Files.write(inputFile.toPath(), imageBytes);
-                    Path preprocessPath = outputDirectoryManagerService.createTempFile("preprocess-" + step + "-" + originalFilename + "-", "." + ext,
-                            new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE)).toPath();
-                    Files.write(preprocessPath, imageBytes);
-                    processedImages.add(preprocessPath.toFile());
-                    bufferedImage = newBufferedImage;
-                }
-            } catch (Exception e) {
-                log.error("Error during preprocessing: " + e.getMessage(), e);
-            }
+                     Path preprocessPath = outputDirectoryManagerService.createTempFile("preprocess-" + step + "-" + originalFilename + "-", "." + ext,
+                             new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE)).toPath();
+                     Files.write(preprocessPath, imageBytes);
+                     processedImages.add(preprocessPath.toFile());
+                     bufferedImage = newBufferedImage;
+                 }
+             } catch (Exception e) {
+                 log.error("Error during preprocessing: " + e.getMessage(), e);
+             }
         }
         return inputFile;
+    }
+
+    private void addProcessedFile(List<File> processedImages, Path path) {
+        if (path != null) processedImages.add(path.toFile());
     }
 
     private ResponseEntity<byte[]> buildResponseEntity(byte[] svgBytes) {
@@ -293,14 +324,16 @@ public class SvgConversionService {
     @Async
     private void saveImageFile(List<File> files, Long id) {
         File dir = outputDirectoryManagerService.createOutputFile(String.valueOf(id));
-        if (!dir.exists())
-            dir.mkdir();
+        if (!dir.exists()) {
+            boolean ok = dir.mkdir();
+            if (!ok) log.warn("Could not create output directory: {}", dir.getAbsolutePath());
+        }
 
         for (File file : files) {
             try {
                 Files.copy(file.toPath(), Path.of(dir.getAbsolutePath(), file.getName()));
             } catch (Exception e) {
-                log.warn("Failed to delete temporary file: {}", file.getAbsolutePath(), e);
+                log.warn("Failed to copy temporary file: {}", file.getAbsolutePath(), e);
             }
         }
     }

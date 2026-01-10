@@ -62,9 +62,10 @@ public class OnnxRembg implements Rembg {
         Integer configuredInputSize = onnxInputSize.inputSize;
         log.info("Configured ONNX input size: {}", onnxInputSize);
 
-        OrtEnvironment env = OrtEnvironment.getEnvironment();
-        OrtSession session = env.createSession(modelPath);
+
         try {
+            OrtEnvironment env = OrtEnvironment.getEnvironment();
+            OrtSession session = env.createSession(modelPath);
             // Inspect model input shape and adapt if model expects a different size
             String inputName = session.getInputNames().iterator().next();
             NodeInfo nodeInfo = session.getInputInfo().get(inputName);
@@ -100,10 +101,12 @@ public class OnnxRembg implements Rembg {
             BufferedImage applyMask = openCVPNPRefinment.refineAndApply(inputImage, resizeMaskToOriginalSize);
             //BufferedImage applyMask = applyMask(original, resizeMaskToOriginalSize);
             log.info("successfully removed background from image");
-            return applyMask;
-        } finally {
             session.close();
             env.close();
+            return applyMask;
+        } catch (Exception e) {
+            log.error("failed to remove background using onnx model: {}", e.getMessage());
+            throw e;
         }
     }
 

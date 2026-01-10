@@ -1,17 +1,11 @@
 package id.rockierocker.image.rembg;
 
-import id.rockierocker.image.util.CommonUtil;
-import id.rockierocker.image.util.ImageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
-import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +27,7 @@ public class OpenCVRembg implements Rembg {
     }
 
     @Override
-    public byte[] removeBackground(InputStream inputImage) throws Exception {
+    public BufferedImage removeBackground(BufferedImage inputImage) throws Exception {
         if (config == null) {
             throw new IllegalAccessException("OpenCV Rembg not configured yet");
         }
@@ -51,15 +45,14 @@ public class OpenCVRembg implements Rembg {
         this.config = config;
     }
 
-    private byte[] process(InputStream inputImage) throws Exception {
+    private BufferedImage process(BufferedImage inputImage) throws Exception {
         log.info("Starting OpenCV background removal...");
 
         // Read input image
-        BufferedImage bufferedImage = ImageIO.read(inputImage);
-        log.info("Image size: {}x{}", bufferedImage.getWidth(), bufferedImage.getHeight());
+        log.info("Image size: {}x{}", inputImage.getWidth(), inputImage.getHeight());
 
         // Convert BufferedImage to OpenCV Mat
-        Mat src = bufferedImageToMat(bufferedImage);
+        Mat src = bufferedImageToMat(inputImage);
 
         // Apply background removal using multiple techniques
         String method = (String) config.getOrDefault("method", "auto");
@@ -97,7 +90,7 @@ public class OpenCVRembg implements Rembg {
         result.release();
 
         log.info("Successfully removed background using OpenCV method: {}", method);
-        return ImageUtil.toBytes(output);
+        return output;
     }
 
     /**
@@ -339,81 +332,193 @@ public class OpenCVRembg implements Rembg {
      * (good for objects with clear edges that have inner backgrounds/holes)
      */
     private Mat removeBackgroundContourWithHoles(Mat src) {
-        log.info("Using Contour detection with hole support...");
+        log.info("Using Contour detection with hole support (optimized)...");
 
         // Convert to grayscale
         Mat gray = new Mat();
         Imgproc.cvtColor(src, gray, Imgproc.COLOR_BGR2GRAY);
 
-        // Apply Gaussian blur
-        Imgproc.GaussianBlur(gray, gray, new Size(5, 5), 0);
+        // Apply bilateral filter to reduce noise while preserving edges
+        Mat filtered = new Mat();
+        Imgproc.bilateralFilter(gray, filtered, 9, 75, 75);
 
-        // Edge detection
+        // Use adaptive threshold for better edge detection in varying lighting
+        Mat binary = new Mat();
+        Imgproc.adaptiveThreshold(filtered, binary, 255,
+            Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+            Imgproc.THRESH_BINARY, 11, 2);
+
+        // Combine with Canny for better edge detection
         Mat edges = new Mat();
-        Imgproc.Canny(gray, edges, 50, 150);
+        Imgproc.Canny(filtered, edges, 30, 90, 3, true);
 
-        // Dilate to connect edges
-        Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
-        Imgproc.dilate(edges, edges, kernel);
+        // Merge binary and edges for comprehensive edge map
+        Mat combined = new Mat();
+        Core.bitwise_or(binary, edges, combined);
 
-        // Find contours with hierarchy (RETR_CCOMP detects outer contours and holes)
+        // Morphological operations to connect edges and fill small gaps
+        Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(3, 3));
+        Imgproc.morphologyEx(combined, combined, Imgproc.MORPH_CLOSE, kernel, new Point(-1, -1), 2);
+
+        // Find contours with full hierarchy (RETR_TREE for multi-level holes)
         List<MatOfPoint> contours = new ArrayList<>();
         Mat hierarchy = new Mat();
-        Imgproc.findContours(edges, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
+        Imgproc.findContours(combined, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
 
-        // Create mask and draw largest outer contour
+        // Create mask
         Mat mask = Mat.zeros(src.size(), CvType.CV_8UC1);
 
         if (!contours.isEmpty()) {
-            // Find largest outer contour (parent == -1)
+            double imageArea = src.rows() * src.cols();
+            double minAreaThreshold = imageArea * 0.01; // Ignore contours < 1% of image
+            double maxAreaThreshold = imageArea * 0.95; // Ignore contours > 95% of image
+
+            // Find largest valid outer contour
             double maxArea = 0;
             int largestOuterIdx = -1;
 
             for (int i = 0; i < contours.size(); i++) {
                 double[] h = hierarchy.get(0, i);
-                // h[3] is parent: -1 means it's an outer contour
+                // h[3] is parent: -1 means it's a top-level outer contour
                 if (h[3] == -1) {
                     double area = Imgproc.contourArea(contours.get(i));
-                    if (area > maxArea) {
-                        maxArea = area;
-                        largestOuterIdx = i;
+                    // Filter by area to avoid noise and full-image contours
+                    if (area > minAreaThreshold && area < maxAreaThreshold && area > maxArea) {
+                        // Additional check: ensure contour is not at image border
+                        Rect bounds = Imgproc.boundingRect(contours.get(i));
+                        boolean atBorder = bounds.x <= 2 || bounds.y <= 2 ||
+                                         bounds.x + bounds.width >= src.cols() - 2 ||
+                                         bounds.y + bounds.height >= src.rows() - 2;
+
+                        if (!atBorder) {
+                            maxArea = area;
+                            largestOuterIdx = i;
+                        }
                     }
                 }
             }
 
             if (largestOuterIdx >= 0) {
-                // Draw outer contour (fill with white = keep object)
-                Imgproc.drawContours(mask, contours, largestOuterIdx, new Scalar(255), -1);
-                log.info("Drew largest outer contour at index {} with area {}", largestOuterIdx, maxArea);
+                // Draw outer contour with smooth approximation
+                MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(largestOuterIdx).toArray());
+                MatOfPoint2f approx = new MatOfPoint2f();
+                double epsilon = 0.001 * Imgproc.arcLength(contour2f, true);
+                Imgproc.approxPolyDP(contour2f, approx, epsilon, true);
 
-                // Find and draw holes (fill with black = remove background inside)
-                int holesCount = 0;
-                for (int i = 0; i < contours.size(); i++) {
-                    double[] h = hierarchy.get(0, i);
-                    // If parent is the largest outer contour, it's a hole inside
-                    if (h[3] == largestOuterIdx) {
-                        Imgproc.drawContours(mask, contours, i, new Scalar(0), -1);
-                        holesCount++;
-                    }
-                }
+                MatOfPoint approxContour = new MatOfPoint(approx.toArray());
+                List<MatOfPoint> smoothContours = new ArrayList<>();
+                smoothContours.add(approxContour);
+
+                // Fill outer contour (white = keep object)
+                Imgproc.drawContours(mask, smoothContours, 0, new Scalar(255), -1);
+                log.info("Drew largest outer contour at index {} with area {:.2f} ({:.1f}% of image)",
+                    largestOuterIdx, maxArea, (maxArea / imageArea) * 100);
+
+                // Process holes recursively (any child of the outer contour)
+                int holesCount = processHoles(mask, contours, hierarchy, largestOuterIdx, minAreaThreshold);
 
                 if (holesCount > 0) {
                     log.info("Removed {} inner backgrounds (holes)", holesCount);
                 }
+
+                // Clean up temporary objects
+                contour2f.release();
+                approx.release();
+                approxContour.release();
+            } else {
+                log.warn("No valid outer contour found, using fallback method");
+                // Fallback: use threshold method
+                filtered.release();
+                binary.release();
+                edges.release();
+                combined.release();
+                kernel.release();
+                hierarchy.release();
+                gray.release();
+                mask.release();
+                return removeBackgroundThreshold(src);
             }
         }
+
+        // Post-process mask: smooth edges and remove small noise
+        Mat kernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5));
+        Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_OPEN, kernel2, new Point(-1, -1), 1);
+        Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_CLOSE, kernel2, new Point(-1, -1), 1);
+
+        // Gaussian blur on mask for smoother alpha edges
+        Imgproc.GaussianBlur(mask, mask, new Size(3, 3), 0);
 
         // Apply mask
         Mat result = applyAlphaMask(src, mask);
 
         // Clean up
         gray.release();
+        filtered.release();
+        binary.release();
         edges.release();
+        combined.release();
         kernel.release();
+        kernel2.release();
         hierarchy.release();
         mask.release();
 
         return result;
+    }
+
+    /**
+     * Recursively process holes (nested contours)
+     */
+    private int processHoles(Mat mask, List<MatOfPoint> contours, Mat hierarchy, int parentIdx, double minAreaThreshold) {
+        int count = 0;
+
+        for (int i = 0; i < contours.size(); i++) {
+            double[] h = hierarchy.get(0, i);
+            // h[3] is parent index
+            if (h[3] == parentIdx) {
+                double area = Imgproc.contourArea(contours.get(i));
+                // Only process holes that are significant enough
+                if (area > minAreaThreshold) {
+                    // Draw hole (black = remove)
+                    Imgproc.drawContours(mask, contours, i, new Scalar(0), -1);
+                    count++;
+
+                    // Recursively process any nested contours inside this hole
+                    // (those would be objects inside the hole that should be kept)
+                    int nestedCount = processNestedObjects(mask, contours, hierarchy, i, minAreaThreshold);
+                    if (nestedCount > 0) {
+                        log.debug("Found {} nested objects inside hole {}", nestedCount, i);
+                    }
+                }
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Process nested objects inside holes (should be kept)
+     */
+    private int processNestedObjects(Mat mask, List<MatOfPoint> contours, Mat hierarchy, int parentIdx, double minAreaThreshold) {
+        int count = 0;
+
+        for (int i = 0; i < contours.size(); i++) {
+            double[] h = hierarchy.get(0, i);
+            // h[3] is parent index
+            if (h[3] == parentIdx) {
+                double area = Imgproc.contourArea(contours.get(i));
+                // Only process objects that are significant enough
+                if (area > minAreaThreshold) {
+                    // Draw nested object (white = keep)
+                    Imgproc.drawContours(mask, contours, i, new Scalar(255), -1);
+                    count++;
+
+                    // Recursively process holes in nested objects
+                    processHoles(mask, contours, hierarchy, i, minAreaThreshold);
+                }
+            }
+        }
+
+        return count;
     }
 
     /**
@@ -547,17 +652,17 @@ public class OpenCVRembg implements Rembg {
         bgra.release();
         return image;
     }
-
-    public static void main(String[] args) throws Exception {
-        OpenCVRembg openCVRembg = new OpenCVRembg();
-        openCVRembg.configMap(Map.of(
-                "method", "contour"  // "auto", "contour", "threshold", or "grabcut"
-        ));
-        File testFile = new File("./data-test/rembg/test4.png");
-        InputStream inputImage = CommonUtil.toInputStream(testFile, new RuntimeException());
-        byte[] outputImage = openCVRembg.removeBackground(inputImage);
-
-        File outputFile = new File(testFile.getAbsolutePath() + ".result-opencv.png");
-        Files.write(outputFile.toPath(), outputImage);
-    }
+//
+//    public static void main(String[] args) throws Exception {
+//        OpenCVRembg openCVRembg = new OpenCVRembg();
+//        openCVRembg.configMap(Map.of(
+//                "method", "contour"  // "auto", "contour", "threshold", or "grabcut"
+//        ));
+//        File testFile = new File("./data-test/rembg/test4.png");
+//        InputStream inputImage = CommonUtil.toInputStream(testFile, new RuntimeException());
+//        byte[] outputImage = openCVRembg.removeBackground(inputImage);
+//
+//        File outputFile = new File(testFile.getAbsolutePath() + ".result-opencv.png");
+//        Files.write(outputFile.toPath(), outputImage);
+//    }
 }

@@ -17,8 +17,8 @@ public enum ResponseCode {
     ),
     FAILED_READ_FILE(
             "RC002",
-            "Failed to read input stream.",
-            "Failed to read input stream.",
+            "Failed to read file.",
+            "Failed to read file.",
             "Error",
             "Error"
     ),
@@ -71,9 +71,58 @@ public enum ResponseCode {
             "Error",
             "Error"
     ),
+    DATA_NOT_FOUND(
+            "RC010",
+            "Data tidak ditemukan.",
+            "Data not found.",
+            "Error",
+            "Data tidak ditemukan."
+    ),
+    DATA_ALREADY_EXISTS(
+            "RC011",
+            "Data sudah ada.",
+            "Data already exists.",
+            "Error",
+            "Data sudah ada."
+    ),
+    FAILED_SAVE_DATA(
+            "RC012",
+            "Gagal menyimpan data.",
+            "Failed to save data.",
+            "Error",
+            "Gagal menyimpan data."
+    ),
+    FAILED_UPDATE_DATA(
+            "RC013",
+            "Gagal mengupdate data.",
+            "Failed to update data.",
+            "Error",
+            "Gagal mengupdate data."
+    ),
+    FAILED_DELETE_DATA(
+            "RC014",
+            "Gagal menghapus data.",
+            "Failed to delete data.",
+            "Error",
+            "Gagal menghapus data."
+    ),
+    FAILED_TO_REMOVE_BACKGROUND(
+            "RC015",
+            "Failed to remove background.",
+            "Failed to remove background.",
+            "Error",
+            "Error"
+    ),
+    REMOVE_BACKGROUND_CONFIG_NOT_FOUND(
+            "RC016",
+            "Remove Background Config not found.",
+            "Remove Background Config not found.",
+            "Error",
+            "Error"
+    ),
     ;
 
-    private ResponseCode(String code,  String defaultMessageId, String defaultMessageEn, String defaultTitleId, String defaultTitleEn) {
+    private ResponseCode(String code, String defaultMessageId, String defaultMessageEn, String defaultTitleId, String defaultTitleEn) {
         this.code = code;
         this.messageId = defaultMessageId;
         this.messageEn = defaultMessageEn;

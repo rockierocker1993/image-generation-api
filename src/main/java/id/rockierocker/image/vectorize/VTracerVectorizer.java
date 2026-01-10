@@ -2,9 +2,10 @@ package id.rockierocker.image.vectorize;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 /**
  * VTracer vectorizer implementation.
@@ -23,19 +24,30 @@ public class VTracerVectorizer extends AbstractVectorizer implements Vectorizer 
         return "VTracer";
     }
 
+    @Override
+    public BufferedImage vectorize(Path input, List<String> additionalCommand, RuntimeException runtimeException) {
+        try {
+            return vectorize(input, additionalCommand);
+        } catch (Exception e) {
+            log.error("VTracer vectorization failed: {}", e.getMessage(), e);
+            throw runtimeException;
+        }
+    }
 
     @Override
-    public void vectorize(Path input, Path output, List<String> additionalCommand)
-            throws Exception {
+    public BufferedImage vectorize(Path input, List<String> additionalCommand) throws Exception {
+        log.info("Starting VTracer vectorization...");
+        Path output = getOutputPath();
         ProcessBuilder pb = new ProcessBuilder(
                 vtracerCmd,
                 "--input", input.toAbsolutePath().toString(),
-                "--output", output.toAbsolutePath().toString()
+                "--output", getOutputPath().toString()
         );
-        if(additionalCommand!=null && !additionalCommand.isEmpty()){
+        if (additionalCommand != null && !additionalCommand.isEmpty()) {
             pb.command().addAll(additionalCommand);
         }
         exec(pb, "vtracer");
+        return readAndDelete(output);
     }
 }
 

@@ -21,9 +21,4 @@ public class SvgConversionController {
         return svgConversionService.convertToSvgVTrace(file, vtraceConversionDto);
     }
 
-    @PostMapping(path = "/inkscape", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> inkscape(@RequestParam("file") MultipartFile file)  {
-        return svgConversionService.convertToSvgInkscape(file);
-    }
-
 }

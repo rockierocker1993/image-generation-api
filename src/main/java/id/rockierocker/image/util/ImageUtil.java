@@ -1,5 +1,7 @@
 package id.rockierocker.image.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -11,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 public class ImageUtil {
 
     /**
@@ -57,6 +60,25 @@ public class ImageUtil {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(bufferedImage, "png", baos);
         return baos.toByteArray();
+    }
+
+
+    /**
+     * Convert a BufferedImage to a byte array.
+     *
+     * @param bufferedImage The BufferedImage to be converted.
+     * @return A byte array representing the image data.
+     * @throws IOException If an error occurs during writing.
+     */
+    public static byte[] toBytesPng(BufferedImage bufferedImage, RuntimeException runtimeException) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(bufferedImage, "png", baos);
+            return baos.toByteArray();
+        } catch (Exception e){
+            log.error("Error converting BufferedImage to PNG byte array {}", e.getMessage(), e);
+            throw runtimeException;
+        }
     }
 
     /**

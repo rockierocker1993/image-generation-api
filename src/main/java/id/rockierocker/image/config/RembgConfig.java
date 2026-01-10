@@ -14,7 +14,7 @@ public class RembgConfig {
     public Rembg rembg() {
         OnnxRembg onnxRembg = new OnnxRembg();
         onnxRembg.configMap(Map.of(
-                "onnxModelPath", "./data/onnx-model/BiRefNet-massive-TR_DIS5K_TR_TEs-epoch_420.onnx",
+                "onnxModelPath", "./data/onnx-model/isnet-anime.onnx",
                 "onnxInputSize", OnnxInputSize.INPUT_SIZE_320
         ));
         return onnxRembg;

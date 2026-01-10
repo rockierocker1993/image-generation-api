@@ -1,0 +1,442 @@
+{
+	"info": {
+		"_postman_id": "image-generation-api-collection",
+		"name": "Image Generation API - CRUD Collection",
+		"description": "Complete REST API collection for StickerCharacter, CharacterExpression, and PromptAI endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "StickerCharacter",
+			"item": [
+				{
+					"name": "Get All Characters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sticker-characters",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sticker-characters"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Characters (Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sticker-characters/page?page=0&size=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sticker-characters", "page"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Character by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sticker-characters/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sticker-characters", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Character by Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sticker-characters/name/Cute Cat",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sticker-characters", "name", "Cute Cat"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Characters by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sticker-characters/category/animal",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sticker-characters", "category", "animal"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Character",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Cute Cat\",\n  \"category\": [\"animal\", \"cat\", \"cute\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/sticker-characters",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sticker-characters"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Character",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Super Cute Cat\",\n  \"category\": [\"animal\", \"cat\", \"cute\", \"adorable\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/sticker-characters/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sticker-characters", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Character",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sticker-characters/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sticker-characters", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "CharacterExpression",
+			"item": [
+				{
+					"name": "Get All Expressions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/character-expressions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "character-expressions"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Expressions (Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/character-expressions/page?page=0&size=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "character-expressions", "page"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Expression by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/character-expressions/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "character-expressions", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Expressions by Character ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/character-expressions/character/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "character-expressions", "character", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Expressions by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/character-expressions/category/emotion",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "character-expressions", "category", "emotion"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Expression",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"expression\": \"happy\",\n  \"category\": [\"emotion\", \"positive\"],\n  \"stickerCharacterId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/character-expressions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "character-expressions"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Expression",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"expression\": \"very happy\",\n  \"category\": [\"emotion\", \"positive\", \"excited\"],\n  \"stickerCharacterId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/character-expressions/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "character-expressions", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Expression",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/character-expressions/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "character-expressions", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PromptAI",
+			"item": [
+				{
+					"name": "Get All Prompts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Prompts (Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts/page?page=0&size=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts", "page"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Prompt by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Prompts by Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts/type/sticker_prompt",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts", "type", "sticker_prompt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Prompts by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts/category/animal",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts", "category", "animal"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Prompts by Type and Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts/type/sticker_prompt/category/animal",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts", "type", "sticker_prompt", "category", "animal"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Prompt",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"prompt\": \"Create a cute cat sticker with big eyes\",\n  \"category\": [\"sticker\", \"animal\", \"cat\"],\n  \"type\": \"sticker_prompt\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Prompt",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"prompt\": \"Create an adorable cat sticker with big eyes and smile\",\n  \"category\": [\"sticker\", \"animal\", \"cat\", \"cute\"],\n  \"type\": \"sticker_prompt\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Prompt",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prompts/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prompts", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
+

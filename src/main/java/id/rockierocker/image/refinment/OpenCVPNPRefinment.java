@@ -27,8 +27,8 @@ public class OpenCVPNPRefinment {
     ) {
         Mat mask = maskToMat(rawMask);
 
-        gaussianBlur(mask, 3);
-        morphologyClose(mask, 5);
+        gaussianBlur(mask, 5);
+        morphologyClose(mask, 1);
         featherAlpha(mask, 1.2);
 
         return applyMask(src, mask);

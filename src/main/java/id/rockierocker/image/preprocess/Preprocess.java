@@ -1,6 +1,7 @@
 package id.rockierocker.image.preprocess;
 
 import id.rockierocker.image.preprocess.model.PreprocessConfig;
+import id.rockierocker.image.constant.PreprocessEnum;
 import lombok.extern.slf4j.Slf4j;
 
 import java.awt.image.BufferedImage;

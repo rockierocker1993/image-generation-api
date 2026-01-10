@@ -7,18 +7,15 @@ import ai.onnxruntime.NodeInfo;
 import ai.onnxruntime.TensorInfo;
 import id.rockierocker.image.refinment.OpenCVPNPRefinment;
 import id.rockierocker.image.rembg.constant.OnnxInputSize;
-import id.rockierocker.image.util.CommonUtil;
 import id.rockierocker.image.util.ImageUtil;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.InputStream;
 import java.nio.FloatBuffer;
-import java.nio.file.Files;
 import java.util.*;
 
+@NoArgsConstructor
 @Slf4j
 public class OnnxRembg implements Rembg {
 
@@ -49,7 +46,7 @@ public class OnnxRembg implements Rembg {
     }
 
     @Override
-    public byte[] removeBackground(InputStream inputImage) throws Exception {
+    public BufferedImage removeBackground(BufferedImage inputImage) throws Exception {
         if (Objects.isNull(config))
             throw new IllegalAccessException("ONNX Rembg not configured yet");
 
@@ -57,11 +54,11 @@ public class OnnxRembg implements Rembg {
     }
 
     /* Process the input image to remove background using ONNX model */
-    private byte[] process(InputStream inputImage) throws Exception {
+    private BufferedImage process(BufferedImage inputImage) throws Exception {
         String modelPath = (String) config.get("onnxModelPath");
         log.info("Starting onnx background removal using {} model...", modelPath);
 
-        OnnxInputSize onnxInputSize = (OnnxInputSize) config.get("onnxInputSize");
+        OnnxInputSize onnxInputSize = OnnxInputSize.fromString(config.getOrDefault("onnxInputSize", "INPUT_SIZE_320").toString());
         Integer configuredInputSize = onnxInputSize.inputSize;
         log.info("Configured ONNX input size: {}", onnxInputSize);
 
@@ -91,21 +88,19 @@ public class OnnxRembg implements Rembg {
                 if (maybeW > 0) targetW = (int) maybeW;
             }
 
-            log.info("reading input image...");
-            BufferedImage original = ImageIO.read(inputImage);
             log.info("resizing input image to {}x{}...", targetW + "", targetH + "");
-            BufferedImage resized = ImageUtil.resize(original, targetW, targetH);
+            BufferedImage resized = ImageUtil.resize(inputImage, targetW, targetH);
             log.info("converting image to tensor...");
             float[] tensorData = imageToTensor(resized, targetW, targetH);
             log.info("running inference to get mask model...");
             float[][] mask = runInference(env, session, tensorData, targetW, targetH);
             log.info("resizing mask to original image size...");
-            float[][] resizeMaskToOriginalSize = resizeMask(mask, original.getWidth(), original.getHeight());
+            float[][] resizeMaskToOriginalSize = resizeMask(mask, inputImage.getWidth(), inputImage.getHeight());
             log.info("applying mask to original image...");
-            BufferedImage applyMask = openCVPNPRefinment.refineAndApply(original, resizeMaskToOriginalSize);//applyMask(input, resizeMaskToOriginalSize);
-            byte[] result = ImageUtil.toBytes(applyMask);
+            BufferedImage applyMask = openCVPNPRefinment.refineAndApply(inputImage, resizeMaskToOriginalSize);
+            //BufferedImage applyMask = applyMask(original, resizeMaskToOriginalSize);
             log.info("successfully removed background from image");
-            return result;
+            return applyMask;
         } finally {
             session.close();
             env.close();
@@ -224,22 +219,4 @@ public class OnnxRembg implements Rembg {
         }
         return out;
     }
-
-    public static void main(String[] args) throws Exception {
-                OnnxRembg onnxRembg = new OnnxRembg();
-                onnxRembg.configMap(Map.of(
-                        //"onnxModelPath", "./data/onnx-model/BiRefNet-massive-TR_DIS5K_TR_TEs-epoch_420.onnx",
-                        "onnxModelPath", "./data/onnx-model/isnet-general-use.onnx",
-                        "onnxInputSize", OnnxInputSize.INPUT_SIZE_320
-                ));
-                File testFile = new File("./data-test/rembg/test3.jpg");
-
-                InputStream inputImage = CommonUtil.toInputStream(testFile, new RuntimeException());
-                byte[] outputImage = onnxRembg.removeBackground(inputImage);
-
-                File outputFile = new File(testFile.getParentFile().getAbsolutePath() + "/" + testFile.getName() + "onnx-1.png");
-                Files.write(outputFile.toPath(), outputImage);
-
-    }
-
 }

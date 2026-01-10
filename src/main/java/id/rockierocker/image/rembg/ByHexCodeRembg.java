@@ -1,14 +1,8 @@
 package id.rockierocker.image.rembg;
 
-import id.rockierocker.image.util.CommonUtil;
-import id.rockierocker.image.util.ImageUtil;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.Map;
 import java.util.Objects;
 
@@ -19,7 +13,7 @@ public class ByHexCodeRembg implements Rembg {
     private final String hexColorKey = "hexColorToRemove";
 
     @Override
-    public byte[] removeBackground(InputStream inputImage) throws Exception {
+    public BufferedImage removeBackground(BufferedImage inputImage) throws Exception {
         log.info("ByHexColorRembg removeBackground called");
         if (Objects.isNull(configMap))
             throw new IllegalAccessException("ByHexColorRembg not configured yet");
@@ -28,11 +22,11 @@ public class ByHexCodeRembg implements Rembg {
             throw new IllegalArgumentException("Hex color to remove not configured");
 
         BufferedImage bufferedImage = removeBackgroundByHex(
-                ImageIO.read(inputImage),
+                inputImage,
                 hexColor,
                 0.98  // threshold for color similarity
         );
-        return ImageUtil.toBytes(bufferedImage);
+        return bufferedImage;
     }
 
     @Override
@@ -152,20 +146,6 @@ public class ByHexCodeRembg implements Rembg {
         float v = max;
 
         return new float[]{h, s, v};
-    }
-
-
-    public static void main(String[] args) throws Exception {
-        ByHexCodeRembg openCVRembg = new ByHexCodeRembg();
-        openCVRembg.configMap(Map.of(
-                "hexColorToRemove", "#00ffff"  // "auto", "contour", "threshold", or "grabcut"
-        ));
-        File testFile = new File("./data-test/rembg/test6.png");
-        InputStream inputImage = CommonUtil.toInputStream(testFile, new RuntimeException());
-        byte[] outputImage = openCVRembg.removeBackground(inputImage);
-
-        File outputFile = new File(testFile.getAbsolutePath() + ".byhexacode.png");
-        Files.write(outputFile.toPath(), outputImage);
     }
 
 }

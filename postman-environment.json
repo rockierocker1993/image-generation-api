@@ -1,0 +1,32 @@
+{
+	"id": "image-generation-api-environment",
+	"name": "Image Generation API - Environment",
+	"values": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "characterId",
+			"value": "1",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "expressionId",
+			"value": "1",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "promptId",
+			"value": "1",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment"
+}
+

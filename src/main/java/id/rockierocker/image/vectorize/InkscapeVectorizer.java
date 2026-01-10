@@ -1,8 +1,12 @@
 package id.rockierocker.image.vectorize;
 
+import lombok.extern.slf4j.Slf4j;
+
+import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 import java.util.List;
 
+@Slf4j
 public class InkscapeVectorizer extends AbstractVectorizer implements Vectorizer {
 
     private final String inkscapeCmd;
@@ -17,21 +21,30 @@ public class InkscapeVectorizer extends AbstractVectorizer implements Vectorizer
     }
 
     @Override
-    public void vectorize(Path input, Path output, List<String> additionalCommand)
-            throws Exception {
+    public BufferedImage vectorize(Path input, List<String> additionalCommand, RuntimeException runtimeException) {
+        try {
+            return vectorize(input, additionalCommand);
+        } catch (Exception e) {
+            log.error("Inkscape vectorization failed: {}", e.getMessage(), e);
+            throw runtimeException;
+        }
+    }
 
+    @Override
+    public BufferedImage vectorize(Path inputImage, List<String> additionalCommand) throws Exception {
+        log.info("Starting Inkscape vectorization...");
+        Path output = getOutputPath();
         List<String> command = List.of(
                 inkscapeCmd,
-                input.toAbsolutePath().toString(),
+                inputImage.toAbsolutePath().toString(),
                 "--batch-process",
                 //"--actions=TraceBitmap;ObjectToPath;ExportPlainSVG",
                 "--actions=SelectAll;TraceBitmap;Delete;ExportPlainSVG",
                 "--export-filename=" + output.toAbsolutePath()
         );
-
         ProcessBuilder pb = new ProcessBuilder(command);
-
         exec(pb, "Inkscape");
+        return readAndDelete(output);
     }
 }
 

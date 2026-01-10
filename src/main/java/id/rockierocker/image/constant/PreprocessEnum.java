@@ -1,13 +1,15 @@
-package id.rockierocker.image.preprocess;
+package id.rockierocker.image.constant;
 
-import id.rockierocker.image.preprocess.model.PreprocessConfig;
-
-import java.awt.image.BufferedImage;
+import id.rockierocker.image.preprocess.AdjustContrast;
+import id.rockierocker.image.preprocess.KMeansQuantization;
+import id.rockierocker.image.preprocess.RemoveOutline;
+import id.rockierocker.image.preprocess.Sharpen;
 
 public enum PreprocessEnum {
     K_MEANS_QUANTIZATION(KMeansQuantization.class),
     ADJUST_CONTRAST(AdjustContrast.class),
-    SHARPEN(Sharpen.class);
+    SHARPEN(Sharpen.class),
+    REMOVE_OUTLINE(RemoveOutline.class);
 
     PreprocessEnum(Class<?> PreprocessClass) {
         this.PreprocessClass = PreprocessClass;

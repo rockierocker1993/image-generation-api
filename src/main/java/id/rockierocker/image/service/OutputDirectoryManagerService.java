@@ -103,6 +103,17 @@ public class OutputDirectoryManagerService {
         }
     }
 
+    public File createTempFile(String prefix, String suffix, byte[] fileByte) {
+        try {
+            File file = Files.createTempFile(outputDirectoryPath, prefix, suffix).toFile();
+            return Files.write(file.toPath(), fileByte).toFile();
+        } catch (IOException ex) {
+            log.error("Error creating temporary file: " + ex.getMessage(), ex);
+            log.warn("returning null instead");
+            return null;
+        }
+    }
+
     public File createTempFile(String prefix, String suffix, byte[] fileByte, RuntimeException e) {
         try {
             File file = Files.createTempFile(outputDirectoryPath, prefix, suffix).toFile();

@@ -1,7 +1,11 @@
 package id.rockierocker.image.util;
 
+import id.rockierocker.image.constant.PreprocessEnum;
+import id.rockierocker.image.preprocess.ImagePreprocess;
+import id.rockierocker.image.preprocess.model.PreprocessConfig;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +14,7 @@ public class CommonUtil {
 
     /**
      * Get file extension in lower case
+     *
      * @param filename the filename
      * @return the file extension in lower case, or empty string if no extension
      */
@@ -22,11 +27,12 @@ public class CommonUtil {
 
     /**
      * Get InputStream from MultipartFile, throwing the provided RuntimeException on failure
-     * @param multipartFile the MultipartFile
+     *
+     * @param multipartFile    the MultipartFile
      * @param runtimeException the RuntimeException to throw on failure
      * @return the InputStream
      */
-    public static InputStream getInputStream(MultipartFile multipartFile, RuntimeException runtimeException){
+    public static InputStream getInputStream(MultipartFile multipartFile, RuntimeException runtimeException) {
         try {
             return multipartFile.getInputStream();
         } catch (IOException e) {
@@ -36,11 +42,12 @@ public class CommonUtil {
 
     /**
      * Get InputStream from File, throwing the provided RuntimeException on failure
-     * @param file the File
+     *
+     * @param file             the File
      * @param runtimeException the RuntimeException to throw on failure
      * @return the InputStream
      */
-    public static InputStream toInputStream(File file, RuntimeException runtimeException){
+    public static InputStream toInputStream(File file, RuntimeException runtimeException) {
         try {
             return java.nio.file.Files.newInputStream(file.toPath());
         } catch (IOException e) {
@@ -48,11 +55,22 @@ public class CommonUtil {
         }
     }
 
-    public static byte[] getBytes(InputStream inputStream, RuntimeException runtimeException){
+    public static byte[] getBytes(InputStream inputStream, RuntimeException runtimeException) {
         try {
             return inputStream.readAllBytes();
         } catch (IOException e) {
             throw runtimeException;
         }
     }
+
+    public static <T> T getInstance(Class<T> clazz) {
+        try {
+            return clazz.getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(
+                    "Failed to create instance of " + clazz.getName(), e
+            );
+        }
+    }
+
 }

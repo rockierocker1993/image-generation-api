@@ -1,0 +1,18 @@
+git clone --recursive https://github.com/microsoft/onnxruntime
+cd onnxruntime
+
+./build.sh \
+  --config Release \
+  --build_shared_lib \
+  --parallel \
+  --use_cuda \
+  --use_tensorrt \
+  --cuda_home /usr/local/cuda \
+  --cudnn_home /usr/lib/aarch64-linux-gnu
+
+hasil build
+libonnxruntime.so
+libonnxruntime_providers_cuda.so
+
+kemudian tambahkan path library ke LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/path/to/onnxruntime/build/lib:$LD_LIBRARY_PATH

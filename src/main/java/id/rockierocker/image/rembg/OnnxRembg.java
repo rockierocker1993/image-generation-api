@@ -64,8 +64,13 @@ public class OnnxRembg implements Rembg {
 
 
         try {
+            log.info("debug 1");
             OrtEnvironment env = OrtEnvironment.getEnvironment();
+
+            log.info("debug 2");
             OrtSession session = env.createSession(modelPath);
+
+            log.info("debug 3");
             // Inspect model input shape and adapt if model expects a different size
             String inputName = session.getInputNames().iterator().next();
             NodeInfo nodeInfo = session.getInputInfo().get(inputName);
@@ -105,6 +110,8 @@ public class OnnxRembg implements Rembg {
             env.close();
             return applyMask;
         } catch (Exception e) {
+
+            log.info("error {}",e.getMessage());
             log.error("failed to remove background using onnx model: {}", e.getMessage());
             throw e;
         }

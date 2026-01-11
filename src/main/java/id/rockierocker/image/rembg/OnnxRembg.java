@@ -19,19 +19,6 @@ import java.util.*;
 @Slf4j
 public class OnnxRembg implements Rembg {
 
-    // =========================
-    // CONFIG
-    // =========================
-    static final int K_COLORS = 5;        // recommended 4–6
-    static final float CONTRAST = 1.2f;   // 1.1 – 1.3
-    static final int ITERATIONS = 10;
-
-    static final float[][] SHARPEN_KERNEL = {
-            { 0, -1,  0 },
-            { -1,  5, -1 },
-            { 0, -1,  0 }
-    };
-
     private Map<String, Object> config;
     OpenCVPNPRefinment openCVPNPRefinment = new OpenCVPNPRefinment();
 

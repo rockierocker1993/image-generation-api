@@ -35,7 +35,7 @@ abstract class AbstractVectorizer {
     }
 
     protected Path getOutputPath() throws IOException {
-        File tempFile = File.createTempFile("vector", null);
+        File tempFile = File.createTempFile("vector", ".png");
         return tempFile.toPath();
     }
 

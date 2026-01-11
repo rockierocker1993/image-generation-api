@@ -3,11 +3,13 @@ package id.rockierocker.image.constant;
 import id.rockierocker.image.crop.OpenCVContourCrop;
 import id.rockierocker.image.rembg.ByHexCodeRembg;
 import id.rockierocker.image.rembg.OnnxRembg;
+import id.rockierocker.image.rembg.OnnxRembgRestApi;
 import id.rockierocker.image.rembg.OpenCVRembg;
 
 public enum RembgEnum {
     BY_HEX_CODE_REMBG(ByHexCodeRembg.class),
     ONNX_REMBG(OnnxRembg.class),
+    ONNX_REMBG_REST_API(OnnxRembgRestApi.class),
     OPEN_CV(OpenCVRembg .class);
     RembgEnum(Class<?> rembgClass) {
         this.rembgClass = rembgClass;

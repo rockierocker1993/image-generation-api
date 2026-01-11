@@ -41,7 +41,7 @@ public class VTracerVectorizer extends AbstractVectorizer implements Vectorizer 
         ProcessBuilder pb = new ProcessBuilder(
                 vtracerCmd,
                 "--input", input.toAbsolutePath().toString(),
-                "--output", getOutputPath().toString()
+                "--output", output.toString()
         );
         if (additionalCommand != null && !additionalCommand.isEmpty()) {
             pb.command().addAll(additionalCommand);

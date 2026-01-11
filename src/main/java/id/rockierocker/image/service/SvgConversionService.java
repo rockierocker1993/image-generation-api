@@ -289,8 +289,7 @@ public class SvgConversionService {
     private byte[] doVectorization(Vectorizer vectorizer, File inputFile, List<String> additionalCommand) {
         log.info("Performing vectorization using " + vectorizer.getName());
         try {
-            BufferedImage bufferedImage = vectorizer.vectorize(inputFile.toPath(), additionalCommand);
-            byte[] outputBytes = ImageUtil.toBytes(bufferedImage);
+            byte[] outputBytes = vectorizer.vectorize(inputFile.toPath(), additionalCommand);
             log.info("Vectorization completed ");
             return outputBytes;
         } catch (Exception e) {

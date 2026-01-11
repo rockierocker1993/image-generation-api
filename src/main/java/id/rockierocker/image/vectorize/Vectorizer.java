@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Map;
 
 public interface Vectorizer {
-    BufferedImage vectorize(
+    byte[] vectorize(
             Path inputImage,
             List<String> additionalCommand,
             RuntimeException runtimeException
     );
 
-    BufferedImage vectorize(
+    byte[] vectorize(
             Path inputImage,
             List<String> additionalCommand
     ) throws Exception;

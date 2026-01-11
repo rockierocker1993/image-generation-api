@@ -35,22 +35,18 @@ abstract class AbstractVectorizer {
     }
 
     protected Path getOutputPath() throws IOException {
-        File tempFile = File.createTempFile("vector", ".png");
+        File tempFile = File.createTempFile("vector", ".svg");
         return tempFile.toPath();
     }
 
-    protected BufferedImage readAndDelete(Path file) throws IOException {
+    protected byte[] readAndDelete(Path file) throws IOException {
+        byte[] data = Files.readAllBytes(file);
         try {
-            BufferedImage image = ImageIO.read(file.toFile());
-            if (image == null) {
-                log.warn("Unsupported image format");
-                throw new RuntimeException("Unsupported image format");
-            }
-            return image;
-        } finally {
             Files.deleteIfExists(file);
+        } catch (IOException e) {
+            log.warn("Failed to delete temp file: {}", file, e);
         }
+        return data;
     }
-
 
 }

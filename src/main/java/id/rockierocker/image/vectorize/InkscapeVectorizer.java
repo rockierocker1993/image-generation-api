@@ -21,7 +21,7 @@ public class InkscapeVectorizer extends AbstractVectorizer implements Vectorizer
     }
 
     @Override
-    public BufferedImage vectorize(Path input, List<String> additionalCommand, RuntimeException runtimeException) {
+    public byte[] vectorize(Path input, List<String> additionalCommand, RuntimeException runtimeException) {
         try {
             return vectorize(input, additionalCommand);
         } catch (Exception e) {
@@ -31,7 +31,7 @@ public class InkscapeVectorizer extends AbstractVectorizer implements Vectorizer
     }
 
     @Override
-    public BufferedImage vectorize(Path inputImage, List<String> additionalCommand) throws Exception {
+    public byte[] vectorize(Path inputImage, List<String> additionalCommand) throws Exception {
         log.info("Starting Inkscape vectorization...");
         Path output = getOutputPath();
         List<String> command = List.of(

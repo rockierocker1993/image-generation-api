@@ -25,7 +25,7 @@ public class VTracerVectorizer extends AbstractVectorizer implements Vectorizer 
     }
 
     @Override
-    public BufferedImage vectorize(Path input, List<String> additionalCommand, RuntimeException runtimeException) {
+    public byte[] vectorize(Path input, List<String> additionalCommand, RuntimeException runtimeException) {
         try {
             return vectorize(input, additionalCommand);
         } catch (Exception e) {
@@ -35,7 +35,7 @@ public class VTracerVectorizer extends AbstractVectorizer implements Vectorizer 
     }
 
     @Override
-    public BufferedImage vectorize(Path input, List<String> additionalCommand) throws Exception {
+    public byte[] vectorize(Path input, List<String> additionalCommand) throws Exception {
         log.info("Starting VTracer vectorization...");
         Path output = getOutputPath();
         ProcessBuilder pb = new ProcessBuilder(

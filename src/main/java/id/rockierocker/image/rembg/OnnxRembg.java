@@ -90,8 +90,6 @@ public class OnnxRembg implements Rembg {
             BufferedImage applyMask = openCVPNPRefinment.refineAndApply(inputImage, resizeMaskToOriginalSize);
             //BufferedImage applyMask = applyMask(original, resizeMaskToOriginalSize);
             log.info("successfully removed background from image");
-            session.close();
-            env.close();
             return applyMask;
         } catch (Exception e) {
 

@@ -2,6 +2,7 @@ package id.rockierocker.image.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import id.rockierocker.image.constant.*;
+import id.rockierocker.image.crop.Crop;
 import id.rockierocker.image.dto.svgconversion.VtraceConversionDto;
 import id.rockierocker.image.exception.BadRequestException;
 import id.rockierocker.image.exception.InternalServerErrorException;
@@ -18,6 +19,7 @@ import id.rockierocker.image.repository.RembgConfigRepository;
 import id.rockierocker.image.repository.VtraceConfigRepository;
 import id.rockierocker.image.util.CommonUtil;
 import id.rockierocker.image.util.ImageUtil;
+import id.rockierocker.image.util.ZipUtil;
 import id.rockierocker.image.vectorize.Vectorizer;
 import id.rockierocker.image.vectorize.constant.VTracerColorMode;
 import id.rockierocker.image.vectorize.constant.VTracerCurveFittingMode;
@@ -79,7 +81,14 @@ public class SvgConversionService {
                             .vectorizeType(VectorizeType.VTRACE.name())
                             .build());
             byte[] svgBytes = doProcessingVTrace(vtraceConversionDto, originalImage);
-            return buildResponseEntity(svgBytes);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"result.svg\""
+                    )
+                    .contentLength(svgBytes.length)
+                    .body(svgBytes);
         } catch (BadRequestException | InternalServerErrorException e) {
             throw e;
         } catch (IOException e) {
@@ -91,6 +100,65 @@ public class SvgConversionService {
         }
 
     }
+
+    /* VTRACE SVG CONVERSION
+     *  see the doc for more info: https://github.com/visioncortex/vtracer?tab=readme-ov-file
+     * */
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<byte[]> convertToSvgVTraceCropMode(MultipartFile file, VtraceConversionDto vtraceConversionDto) {
+        log.info("Starting SVG conversion using {}", vectorizerVtrace.getName());
+        try {
+            vtraceConversionDto = buildVtraceConversionDto(file, vtraceConversionDto);
+            Icon originalImage = iconRepository.save(
+                    Icon.builder()
+                            .name(vtraceConversionDto.getOriginalFilename())
+                            .size((long) vtraceConversionDto.getInputBytes().length)
+                            .description("Original Image before vectorization")
+                            .format(vtraceConversionDto.getExt())
+                            .filePath(vtraceConversionDto.getInputFile().getPath())
+                            .vectorizeType(VectorizeType.VTRACE.name())
+                            .build());
+
+            Crop crop = (Crop) CommonUtil.getInstance(CropEnum.CROP_COUNTOUR.cropClass);
+            List<BufferedImage> bufferedImages = crop.crop(vtraceConversionDto.getInputBufferedImage());
+            log.info("Cropped into {} images for vectorization.", bufferedImages.size());
+            Map<String, byte[]> svgBytesMap = new HashMap<>();
+
+            int index = 1;
+            String originalFilename = vtraceConversionDto.getOriginalFilename();
+            for (BufferedImage bufferedImage : bufferedImages) {
+                vtraceConversionDto.setInputBufferedImage(bufferedImage);
+                byte[] inputBytes = ImageUtil.toBytesPng(bufferedImage, new InternalServerErrorException(ResponseCode.FAILED_READ_FILE));
+                File inputFile = outputDirectoryManagerService.createTempFile("crop-" + index + "-" + vtraceConversionDto.getOriginalFilename() + "-", "." + vtraceConversionDto.getExt(),
+                        inputBytes, new InternalServerErrorException(ResponseCode.FAILED_CREATE_TEMP_FILE));
+                vtraceConversionDto.setInputBytes(inputBytes);
+                vtraceConversionDto.setInputFile(inputFile);
+                vtraceConversionDto.setOriginalFilename(originalFilename+"-"+index);
+                log.info("Processing cropped image {} for VTrace vectorization.", index);
+                byte[] svgBytes = doProcessingVTrace(vtraceConversionDto, originalImage);
+                svgBytesMap.put("result" + index + ".svg", svgBytes);
+            }
+            byte[] zipBytes = ZipUtil.zipMultipleFilesWithCompression(svgBytesMap, 5);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"result.zip\""
+                    )
+                    .contentLength(zipBytes.length)
+                    .body(zipBytes);
+        } catch (BadRequestException | InternalServerErrorException e) {
+            throw e;
+        } catch (IOException e) {
+            log.error("IO error during VTrace SVG conversion", e);
+            throw new InternalServerErrorException(ResponseCode.VECTORIZE_FAILED);
+        } catch (Exception e) {
+            log.error("unexpected error during VTrace SVG conversion", e);
+            throw new InternalServerErrorException(ResponseCode.VECTORIZE_FAILED);
+        }
+
+    }
+
 
     public byte[] doProcessingVTrace(VtraceConversionDto vtraceConversionDto, Icon originalImage) throws IOException {
         log.info("Starting processing for VTrace vectorization.");
@@ -275,16 +343,6 @@ public class SvgConversionService {
         if (path != null) processedImages.add(path.toFile());
     }
 
-    private ResponseEntity<byte[]> buildResponseEntity(byte[] svgBytes) {
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"result.svg\""
-                )
-                .contentLength(svgBytes.length)
-                .body(svgBytes);
-    }
 
     private byte[] doVectorization(Vectorizer vectorizer, File inputFile, List<String> additionalCommand) {
         log.info("Performing vectorization using " + vectorizer.getName());

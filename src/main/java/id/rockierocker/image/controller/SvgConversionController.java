@@ -21,4 +21,9 @@ public class SvgConversionController {
         return svgConversionService.convertToSvgVTrace(file, vtraceConversionDto);
     }
 
+    @PostMapping(path = "/vtrace-crop-mode", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> vtraceCropMode(@RequestParam("file") MultipartFile file, @ModelAttribute VtraceConversionDto vtraceConversionDto)  {
+        return svgConversionService.convertToSvgVTraceCropMode(file, vtraceConversionDto);
+    }
+
 }

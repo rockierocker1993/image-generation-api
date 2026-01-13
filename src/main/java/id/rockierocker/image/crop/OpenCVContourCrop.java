@@ -53,8 +53,16 @@ public class OpenCVContourCrop implements Crop {
     }
 
     private Mat bufferedImageToMat(BufferedImage bi) {
-        Mat mat = new Mat(bi.getHeight(), bi.getWidth(), CvType.CV_8UC3);
-        byte[] data = ((DataBufferByte) bi.getRaster().getDataBuffer()).getData();
+        // Convert to BGR format if needed to ensure compatibility with OpenCV
+        BufferedImage convertedImage = bi;
+        if (bi.getType() != BufferedImage.TYPE_3BYTE_BGR) {
+            log.debug("Converting BufferedImage from type {} to TYPE_3BYTE_BGR", bi.getType());
+            convertedImage = new BufferedImage(bi.getWidth(), bi.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
+            convertedImage.getGraphics().drawImage(bi, 0, 0, null);
+        }
+
+        Mat mat = new Mat(convertedImage.getHeight(), convertedImage.getWidth(), CvType.CV_8UC3);
+        byte[] data = ((DataBufferByte) convertedImage.getRaster().getDataBuffer()).getData();
         mat.put(0, 0, data);
         return mat;
     }

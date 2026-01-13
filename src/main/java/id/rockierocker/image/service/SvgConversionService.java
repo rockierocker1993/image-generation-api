@@ -137,6 +137,7 @@ public class SvgConversionService {
                 log.info("Processing cropped image {} for VTrace vectorization.", index);
                 byte[] svgBytes = doProcessingVTrace(vtraceConversionDto, originalImage);
                 svgBytesMap.put("result" + index + ".svg", svgBytes);
+                index++;
             }
             byte[] zipBytes = ZipUtil.zipMultipleFilesWithCompression(svgBytesMap, 5);
             return ResponseEntity.ok()

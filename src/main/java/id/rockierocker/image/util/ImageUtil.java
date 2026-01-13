@@ -3,6 +3,9 @@ package id.rockierocker.image.util;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -10,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +21,8 @@ import java.util.Map;
 public class ImageUtil {
 
     /**
-     * Resize a BufferedImage to the given width and height.
+     * Resize a BufferedImage to the given width and height with high quality.
+     * Preserves transparency if present in the original image.
      *
      * @param img The original image to be resized.
      * @param w   The target width.
@@ -25,10 +30,22 @@ public class ImageUtil {
      * @return A new BufferedImage that is the resized version of the original image.
      */
     public static BufferedImage resize(BufferedImage img, int w, int h) {
-        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        // Preserve image type, especially for transparency
+        int imageType = img.getType();
+        if (imageType == BufferedImage.TYPE_CUSTOM) {
+            // Use appropriate type based on alpha channel
+            imageType = img.getColorModel().hasAlpha() ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB;
+        }
+
+        BufferedImage out = new BufferedImage(w, h, imageType);
         Graphics2D g = out.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+        // Use high-quality rendering hints
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+
         g.drawImage(img, 0, 0, w, h, null);
         g.dispose();
         return out;
@@ -50,7 +67,7 @@ public class ImageUtil {
     }
 
     /**
-     * Convert a BufferedImage to a byte array.
+     * Convert a BufferedImage to a PNG byte array with high quality settings.
      *
      * @param bufferedImage The BufferedImage to be converted.
      * @return A byte array representing the image data.
@@ -58,23 +75,41 @@ public class ImageUtil {
      */
     public static byte[] toBytesPng(BufferedImage bufferedImage) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(bufferedImage, "png", baos);
+
+        // Use ImageWriter for better control over PNG quality
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("png");
+        if (!writers.hasNext()) {
+            // Fallback to basic write
+            ImageIO.write(bufferedImage, "png", baos);
+            return baos.toByteArray();
+        }
+
+        ImageWriter writer = writers.next();
+        try (ImageOutputStream ios = ImageIO.createImageOutputStream(baos)) {
+            writer.setOutput(ios);
+
+            ImageWriteParam param = writer.getDefaultWriteParam();
+            // PNG doesn't use compression mode in the same way as JPEG
+            // But we can ensure the best quality output
+
+            writer.write(null, new javax.imageio.IIOImage(bufferedImage, null, null), param);
+            writer.dispose();
+        }
+
         return baos.toByteArray();
     }
 
 
     /**
-     * Convert a BufferedImage to a byte array.
+     * Convert a BufferedImage to a PNG byte array with high quality settings.
      *
      * @param bufferedImage The BufferedImage to be converted.
+     * @param runtimeException The exception to throw if an error occurs.
      * @return A byte array representing the image data.
-     * @throws IOException If an error occurs during writing.
      */
     public static byte[] toBytesPng(BufferedImage bufferedImage, RuntimeException runtimeException) {
         try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(bufferedImage, "png", baos);
-            return baos.toByteArray();
+            return toBytesPng(bufferedImage);
         } catch (Exception e){
             log.error("Error converting BufferedImage to PNG byte array {}", e.getMessage(), e);
             throw runtimeException;
